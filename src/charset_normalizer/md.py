@@ -19,15 +19,19 @@ from .constant import (
     COMMON_CJK_CHARACTERS,
     COMMON_SAFE_ASCII_CHARACTERS,
     TRACE,
-    UNICODE_SECONDARY_RANGE_KEYWORD,
+    CompatibleFamillyRange,
     _ACCENTUATED,
     _ARABIC,
     _ARABIC_ISOLATED_FORM,
+    _BASIC_LATIN_COMPATIBLE_RANGE_FAMILIES,
     _CJK,
+    _COMPATIBLE_RANGE_FAMILIES,
+    _COMPATIBLE_WITH_ANY_RANGE_FAMILIES,
     _HANGUL,
     _HIRAGANA,
     _KATAKANA,
     _LATIN,
+    _RANGE_FAMILIES,
     _THAI,
 )
 from .utils import (
@@ -777,76 +781,37 @@ class ArabicIsolatedFormPlugin(MessDetectorPlugin):
         return isolated_form_usage
 
 
-@lru_cache(maxsize=1024)
 def is_suspiciously_successive_range(
     unicode_range_a: str | None, unicode_range_b: str | None
 ) -> bool:
     """
-    Determine if two Unicode range seen next to each other can be considered as suspicious.
+    Determine if two Unicode ranges seen next to each other can be considered suspicious.
     """
     if unicode_range_a is None or unicode_range_b is None:
         return True
 
-    if unicode_range_a == unicode_range_b:
+    familly_a: str = _RANGE_FAMILIES[unicode_range_a]
+    familly_b: str = _RANGE_FAMILIES[unicode_range_b]
+
+    if familly_a == familly_b:
         return False
 
-    if "Latin" in unicode_range_a and "Latin" in unicode_range_b:
-        return False
-
-    if "Emoticons" in unicode_range_a or "Emoticons" in unicode_range_b:
-        return False
-
-    # Latin characters can be accompanied with a combining diacritical mark
-    # eg. Vietnamese.
-    if ("Latin" in unicode_range_a or "Latin" in unicode_range_b) and (
-        "Combining" in unicode_range_a or "Combining" in unicode_range_b
+    if (
+        familly_a in _COMPATIBLE_WITH_ANY_RANGE_FAMILIES
+        or familly_b in _COMPATIBLE_WITH_ANY_RANGE_FAMILIES
     ):
         return False
 
-    keywords_range_a, keywords_range_b = (
-        unicode_range_a.split(" "),
-        unicode_range_b.split(" "),
-    )
-
-    for el in keywords_range_a:
-        if el in UNICODE_SECONDARY_RANGE_KEYWORD:
-            continue
-        if el in keywords_range_b:
-            return False
-
-    # Japanese Exception
-    range_a_jp_chars, range_b_jp_chars = (
-        unicode_range_a
-        in (
-            "Hiragana",
-            "Katakana",
-        ),
-        unicode_range_b in ("Hiragana", "Katakana"),
-    )
-    if (range_a_jp_chars or range_b_jp_chars) and (
-        "CJK" in unicode_range_a or "CJK" in unicode_range_b
-    ):
-        return False
-    if range_a_jp_chars and range_b_jp_chars:
+    if CompatibleFamillyRange(familly_a, familly_b) in _COMPATIBLE_RANGE_FAMILIES:
         return False
 
-    if "Hangul" in unicode_range_a or "Hangul" in unicode_range_b:
-        if "CJK" in unicode_range_a or "CJK" in unicode_range_b:
-            return False
-        if unicode_range_a == "Basic Latin" or unicode_range_b == "Basic Latin":
-            return False
+    # Basic Latin is commonly interspersed with East Asian scripts, but the
+    # compatibility must not extend to every range in the Latin family.
+    if unicode_range_a == "Basic Latin":
+        return familly_b not in _BASIC_LATIN_COMPATIBLE_RANGE_FAMILIES
 
-    # Chinese/Japanese use dedicated range for punctuation and/or separators.
-    if ("CJK" in unicode_range_a or "CJK" in unicode_range_b) or (
-        unicode_range_a in ["Katakana", "Hiragana"]
-        and unicode_range_b in ["Katakana", "Hiragana"]
-    ):
-        if "Punctuation" in unicode_range_a or "Punctuation" in unicode_range_b:
-            return False
-        if "Forms" in unicode_range_a or "Forms" in unicode_range_b:
-            return False
-        if unicode_range_a == "Basic Latin" or unicode_range_b == "Basic Latin":
-            return False
+    if unicode_range_b == "Basic Latin":
+        return familly_a not in _BASIC_LATIN_COMPATIBLE_RANGE_FAMILIES
 
     return True
 
