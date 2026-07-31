@@ -361,8 +361,8 @@ class UnprintablePlugin(MessDetectorPlugin):
     def feed_info(self, character: str, info: CharInfo) -> None:
         """Optimized feed using pre-computed character info."""
         if (
-            not info.space
-            and not info.printable
+            not info.printable
+            and not info.space
             and character != "\x1a"
             and character != "\ufeff"
         ):
