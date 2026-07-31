@@ -681,7 +681,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
         "_successive_upper_lower_count",
         "_successive_upper_lower_count_final",
         "_character_count",
-        "_last_alpha_seen",
         "_last_alpha_seen_upper",
         "_last_alpha_seen_lower",
         "_current_ascii_only",
@@ -697,7 +696,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
 
         self._character_count: int = 0
 
-        self._last_alpha_seen: str | None = None
         self._last_alpha_seen_upper: bool = False
         self._last_alpha_seen_lower: bool = False
         self._current_ascii_only: bool = True
@@ -719,7 +717,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
 
             self._successive_upper_lower_count = 0
             self._character_count_since_last_sep = 0
-            self._last_alpha_seen = None
             self._buf = False
             self._character_count += 1
             self._current_ascii_only = True
@@ -729,7 +726,7 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
         if self._current_ascii_only and not info.is_ascii:
             self._current_ascii_only = False
 
-        if self._last_alpha_seen is not None:
+        if self._character_count_since_last_sep > 0:
             if (info.upper and self._last_alpha_seen_lower) or (
                 info.lower and self._last_alpha_seen_upper
             ):
@@ -743,7 +740,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
 
         self._character_count += 1
         self._character_count_since_last_sep += 1
-        self._last_alpha_seen = character
         self._last_alpha_seen_upper = info.upper
         self._last_alpha_seen_lower = info.lower
 
@@ -752,7 +748,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
         self._character_count_since_last_sep = 0
         self._successive_upper_lower_count = 0
         self._successive_upper_lower_count_final = 0
-        self._last_alpha_seen = None
         self._last_alpha_seen_upper = False
         self._last_alpha_seen_lower = False
         self._buf = False
