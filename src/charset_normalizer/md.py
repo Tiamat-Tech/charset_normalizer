@@ -284,7 +284,6 @@ class TooManySymbolOrPunctuationPlugin(MessDetectorPlugin):
         "_symbol_count",
         "_character_count",
         "_last_printable_char",
-        "_frenzy_symbol_in_word",
     )
 
     def __init__(self) -> None:
@@ -293,7 +292,6 @@ class TooManySymbolOrPunctuationPlugin(MessDetectorPlugin):
         self._character_count: int = 0
 
         self._last_printable_char: str | None = None
-        self._frenzy_symbol_in_word: bool = False
 
     def feed_info(self, character: str, info: CharInfo) -> None:
         """Optimized feed using pre-computed character info."""
