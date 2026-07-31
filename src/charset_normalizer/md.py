@@ -215,10 +215,10 @@ class CharInfo:
 
             if flags and self.accentuated:
                 self.unaccented = remove_accent(character)
-                self.common_cjk = self.is_cjk and character in COMMON_CJK_CHARACTERS
             else:
                 self.unaccented = character
-                self.common_cjk = False
+
+            self.common_cjk = self.is_cjk and character in COMMON_CJK_CHARACTERS
 
             # Eagerly compute punct and sym (avoids property dispatch overhead
             # on 300K+ accesses in the hot loop).
