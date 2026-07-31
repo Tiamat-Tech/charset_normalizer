@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from charset_normalizer.md import mess_ratio
+from charset_normalizer.md import is_suspiciously_successive_range, mess_ratio
 
 
 @pytest.mark.parametrize(
@@ -46,3 +46,36 @@ def test_mess_detection(content, min_expected_ratio, max_expected_ratio):
     assert (
         min_expected_ratio <= calculated_mess_ratio <= max_expected_ratio
     ), "The mess detection ratio calculated for given content is not well adjusted!"
+
+
+@pytest.mark.parametrize(
+    "range_a, range_b",
+    [
+        ("CJK Unified Ideographs", "Bopomofo"),
+        ("CJK Unified Ideographs", "Kanbun"),
+        ("Basic Latin", "IPA Extensions"),
+        ("IPA Extensions", "Phonetic Extensions"),
+        ("Basic Latin", "Spacing Modifier Letters"),
+        ("Alphabetic Presentation Forms", "Hebrew"),
+        ("Halfwidth and Fullwidth Forms", "Hangul Syllables"),
+        ("Basic Latin", "Hiragana"),
+        ("Basic Latin", "Kana Extended-A"),
+    ],
+)
+def test_compatible_successive_ranges(range_a, range_b):
+    assert is_suspiciously_successive_range(range_a, range_b) is False
+    assert is_suspiciously_successive_range(range_b, range_a) is False
+
+
+@pytest.mark.parametrize(
+    "transparent_range",
+    [
+        "Combining Diacritical Marks",
+        "Variation Selectors",
+        "Emoticons",
+        "Miscellaneous Symbols and Pictographs",
+    ],
+)
+def test_transparent_successive_ranges(transparent_range):
+    assert is_suspiciously_successive_range("Cyrillic", transparent_range) is False
+    assert is_suspiciously_successive_range(transparent_range, "Cyrillic") is False
