@@ -2,6 +2,16 @@
 All notable changes to charset-normalizer will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.4.10](https://github.com/Ousret/charset_normalizer/compare/3.4.9...3.4.10) (2026-08-??)
+
+### Fixed
+- Comparing a CharsetMatch to a non-alias encoding strings (#773)
+- Return 0.0 CharsetMatch.multi_byte_usage for empty payloads instead of crashing (#774)
+
+### Changed
+- No longer holding a global cache for utils.py/md.py functions.
+- Raised upper bound of mypy(c) to 2.3 for our optimized wheel.
+
 ## [3.4.9](https://github.com/Ousret/charset_normalizer/compare/3.4.8...3.4.9) (2026-07-07)
 
 ### Fixed
