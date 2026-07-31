@@ -2053,3 +2053,28 @@ _SECONDARY_RANGE_NAMES: frozenset[str] = frozenset(
     for range_name in UNICODE_RANGES_COMBINED
     if any(keyword in range_name for keyword in UNICODE_SECONDARY_RANGE_KEYWORD)
 )
+
+_KNOWN_MB_DECODERS: frozenset[str] = frozenset(
+    {
+        "utf_8",
+        "utf_8_sig",
+        "utf_16",
+        "utf_16_be",
+        "utf_16_le",
+        "utf_32",
+        "utf_32_le",
+        "utf_32_be",
+        "utf_7",
+    }
+)
+
+_KNOWN_MB_CLASSES: frozenset[str] = frozenset(
+    {
+        "_codecs_cn",
+        "_codecs_hk",
+        "_codecs_iso2022",
+        "_codecs_jp",
+        "_codecs_kr",
+        "_codecs_tw",
+    }
+)

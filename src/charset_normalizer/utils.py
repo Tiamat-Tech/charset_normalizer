@@ -6,7 +6,6 @@ import unicodedata
 from bisect import bisect_right
 from codecs import IncrementalDecoder
 from encodings.aliases import aliases
-from functools import lru_cache
 from re import findall
 from typing import Generator
 
@@ -16,7 +15,6 @@ from .constant import (
     RE_POSSIBLE_ENCODING_INDICATION,
     UNICODE_RANGES_COMBINED,
     _SECONDARY_RANGE_NAMES,
-    UTF8_MAXIMAL_ALLOCATION,
     COMMON_CJK_CHARACTERS,
     _LATIN,
     _CJK,
@@ -28,6 +26,8 @@ from .constant import (
     _ARABIC_ISOLATED_FORM,
     _ACCENT_KEYWORDS,
     _ACCENTUATED,
+    _KNOWN_MB_DECODERS,
+    _KNOWN_MB_CLASSES,
 )
 
 
@@ -69,7 +69,6 @@ def is_accentuated(character: str) -> bool:
     return bool(_character_flags(character) & _ACCENTUATED)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def remove_accent(character: str) -> str:
     decomposed: str = unicodedata.decomposition(character)
     if not decomposed:
@@ -155,47 +154,38 @@ def is_separator(character: str) -> bool:
     return "Z" in character_category or character_category in {"Po", "Pd", "Pc"}
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_case_variable(character: str) -> bool:
     return character.islower() != character.isupper()
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_cjk(character: str) -> bool:
     return bool(_character_flags(character) & _CJK)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_hiragana(character: str) -> bool:
     return bool(_character_flags(character) & _HIRAGANA)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_katakana(character: str) -> bool:
     return bool(_character_flags(character) & _KATAKANA)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_hangul(character: str) -> bool:
     return bool(_character_flags(character) & _HANGUL)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_thai(character: str) -> bool:
     return bool(_character_flags(character) & _THAI)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_arabic(character: str) -> bool:
     return bool(_character_flags(character) & _ARABIC)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_arabic_isolated_form(character: str) -> bool:
     return bool(_character_flags(character) & _ARABIC_ISOLATED_FORM)
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_cjk_uncommon(character: str) -> bool:
     return character not in COMMON_CJK_CHARACTERS
 
@@ -204,7 +194,6 @@ def is_unicode_range_secondary(range_name: str) -> bool:
     return range_name in _SECONDARY_RANGE_NAMES
 
 
-@lru_cache(maxsize=UTF8_MAXIMAL_ALLOCATION)
 def is_unprintable(character: str) -> bool:
     return (
         not character.isspace()  # includes \n \t \r \v
@@ -240,7 +229,7 @@ def any_specified_encoding(
         decoded_zone,
     )
 
-    if len(results) == 0:
+    if not results:
         return None
 
     for specified_encoding in results:
@@ -258,22 +247,11 @@ def any_specified_encoding(
     return None
 
 
-@lru_cache(maxsize=128)
 def is_multi_byte_encoding(name: str) -> bool:
     """
     Verify is a specific encoding is a multi byte one based on it IANA name
     """
-    if name in {
-        "utf_8",
-        "utf_8_sig",
-        "utf_16",
-        "utf_16_be",
-        "utf_16_le",
-        "utf_32",
-        "utf_32_le",
-        "utf_32_be",
-        "utf_7",
-    }:
+    if name in _KNOWN_MB_DECODERS:
         return True
 
     # Besides the Unicode family above, every multibyte codec shipped with
@@ -283,14 +261,7 @@ def is_multi_byte_encoding(name: str) -> bool:
     # classifying the whole IANA_SUPPORTED list would otherwise import many
     # modules and dominate "import charset_normalizer" wall time.
     # see https://github.com/jawah/charset_normalizer/issues/742
-    for provider in (
-        "_codecs_cn",
-        "_codecs_hk",
-        "_codecs_iso2022",
-        "_codecs_jp",
-        "_codecs_kr",
-        "_codecs_tw",
-    ):
+    for provider in _KNOWN_MB_CLASSES:
         try:
             importlib.import_module(provider).getcodec(name)  # type: ignore[attr-defined]
         except (ImportError, AttributeError, LookupError):  # Defensive: edge cases
