@@ -213,7 +213,7 @@ class CharInfo:
             self.is_arabic = bool(flags & _ARABIC)
             self.is_glyph = bool(flags & _GLYPH_MASK)
 
-            if flags and self.accentuated:
+            if self.latin and self.accentuated:
                 self.unaccented = remove_accent(character)
             else:
                 self.unaccented = character
