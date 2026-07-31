@@ -540,14 +540,13 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
 
             if info.accentuated:
                 self._buffer_accent_count += 1
-            if (
-                not self._foreign_long_watch
-                and (not info.latin or info.accentuated)
-                and not info.is_glyph
-            ):
-                self._foreign_long_watch = True
             if info.is_glyph:
                 self._buffer_glyph_count += 1
+            elif (
+                not self._foreign_long_watch
+                and (not info.latin or info.accentuated)
+            ):
+                self._foreign_long_watch = True
             return
         if not self._buffer_length:
             return
