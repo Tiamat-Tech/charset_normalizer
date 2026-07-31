@@ -75,6 +75,7 @@ class CharInfo:
         "emoticon",
         "safe",
         "common_cjk",
+        "unaccented",
     )
 
     character: str
@@ -99,6 +100,7 @@ class CharInfo:
     emoticon: bool
     safe: bool
     common_cjk: bool
+    unaccented: str
 
     def __init__(self, character: str) -> None:
         """Compute all properties for *character* (built once per codepoint,
@@ -111,6 +113,10 @@ class CharInfo:
         if o < 128:
             self.is_ascii = True
             self.accentuated = False
+            self.unaccented = character
+            self.emoticon = False
+            self.common_cjk = False
+            self.safe = character in COMMON_SAFE_ASCII_CHARACTERS
             self.is_cjk = False
             self.is_arabic = False
             self.is_glyph = False
@@ -183,6 +189,7 @@ class CharInfo:
         else:
             # Non-ASCII path
             self.is_ascii = False
+            self.safe = False
             self.printable = character.isprintable()
             self.alpha = character.isalpha()
             self.upper = character.isupper()
@@ -195,8 +202,10 @@ class CharInfo:
             flags: int
             if self.alpha:
                 flags = _character_flags(character)
+                self.emoticon = False
             else:
                 flags = 0
+                self.emoticon = is_emoticon(character)
             self.flags = flags
             self.accentuated = bool(flags & _ACCENTUATED)
             self.latin = bool(flags & _LATIN)
@@ -204,16 +213,24 @@ class CharInfo:
             self.is_arabic = bool(flags & _ARABIC)
             self.is_glyph = bool(flags & _GLYPH_MASK)
 
+            if flags and self.accentuated:
+                self.unaccented = remove_accent(character)
+                self.common_cjk = self.is_cjk and character in COMMON_CJK_CHARACTERS
+            else:
+                self.unaccented = character
+                self.common_cjk = False
+
             # Eagerly compute punct and sym (avoids property dispatch overhead
             # on 300K+ accesses in the hot loop).
-            self.punct = is_punctuation(character) if self.printable else False
-            self.sym = is_symbol(character) if self.printable else False
+            if self.printable:
+                self.punct = is_punctuation(character)
+                self.sym = is_symbol(character)
+            else:
+                self.punct = False
+                self.sym = False
 
         self.range = unicode_range(character)
         self.sep = is_separator(character)
-        self.emoticon = is_emoticon(character)
-        self.safe = character in COMMON_SAFE_ASCII_CHARACTERS
-        self.common_cjk = character in COMMON_CJK_CHARACTERS
 
 
 # Per-codepoint cache of CharInfo instances
@@ -378,7 +395,7 @@ class SuspiciousDuplicateAccentPlugin(MessDetectorPlugin):
         self._successive_count: int = 0
         self._character_count: int = 0
 
-        self._last_latin_character: str | None = None
+        self._last_latin_character: CharInfo | None = None
         self._last_was_accentuated: bool = False
 
     def feed_info(self, character: str, info: CharInfo) -> None:
@@ -389,11 +406,11 @@ class SuspiciousDuplicateAccentPlugin(MessDetectorPlugin):
             and info.accentuated
             and self._last_was_accentuated
         ):
-            if info.upper and self._last_latin_character.isupper():
+            if info.upper and self._last_latin_character.upper:
                 self._successive_count += 1
-            if remove_accent(character) == remove_accent(self._last_latin_character):
+            if info.unaccented == self._last_latin_character.unaccented:
                 self._successive_count += 1
-        self._last_latin_character = character
+        self._last_latin_character = info
         self._last_was_accentuated = info.accentuated
 
     def reset(self) -> None:  # Abstract
