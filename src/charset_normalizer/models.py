@@ -266,8 +266,15 @@ class CharsetMatches:
 
     def __init__(self, results: list[CharsetMatch] | None = None):
         self._results: list[CharsetMatch] = sorted(results) if results else []
+        self._is_sorted: bool = True
+
+    def _ensure_sorted(self) -> None:
+        if not self._is_sorted:
+            self._results.sort()
+            self._is_sorted = True
 
     def __iter__(self) -> Iterator[CharsetMatch]:
+        self._ensure_sorted()
         yield from self._results
 
     def __getitem__(self, item: int | str) -> CharsetMatch:
@@ -276,6 +283,7 @@ class CharsetMatches:
         Raise KeyError upon invalid index or encoding not present in results.
         """
         if isinstance(item, int):
+            self._ensure_sorted()
             return self._results[item]
         if isinstance(item, str):
             item = iana_name(item, False)
@@ -308,7 +316,7 @@ class CharsetMatches:
                     match.add_submatch(item)
                     return
         self._results.append(item)
-        self._results = sorted(self._results)
+        self._is_sorted = False
 
     def best(self) -> CharsetMatch | None:
         """
@@ -316,6 +324,7 @@ class CharsetMatches:
         """
         if not self._results:
             return None
+        self._ensure_sorted()
         return self._results[0]
 
     def first(self) -> CharsetMatch | None:

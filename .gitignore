@@ -125,3 +125,6 @@ dmypy.json
 
 .idea/
 char-dataset/
+
+# Cython-generated C sources
+src/charset_normalizer/*.c

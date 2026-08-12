@@ -2,6 +2,33 @@
 All notable changes to charset-normalizer will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.0](https://github.com/Ousret/charset_normalizer/compare/3.4.9...3.5.0) (2026-08-12)
+
+### Added
+- Explicit support for Python 3.15
+
+### Fixed
+- Comparing a CharsetMatch to a non-alias encoding strings (#773)
+- Return 0.0 CharsetMatch.multi_byte_usage for empty payloads instead of crashing (#774)
+- A file with both a charset declaration and BOM/SIG did not verify first the BOM/SIG charset.
+- iso2022* cases misdetected due to a flaw in our multibyte chunking logic.
+
+### Changed
+- Replaced the optional mypyc build with Cython extensions while retaining the
+  pure Python fallback. The previous engine (mypyc) started to hit rough limit around
+  the optimization of our noise/coherence detector while Cython allows us to
+  steer the engine toward the right generated optimized sources.
+  This change SHOULD not impact bundler (e.g. Pyinstaller) as the module are
+  immediately discoverable (i.e. not hidden import like mypyc did).
+  Moreover, a long wished distribution is the abi3 wheels, this will allow us
+  to no longer rush each year when a new Python interpreter is released.
+  We still distribute the interpreter specific wheels for faster performance.
+- Applied micro-optimization on several utils.
+- CharsetMatches no longer sort on each match insertion.
+
+### Misc
+- Removed an old performance optimization attempt in apy.py (success_fast_tracked+payload_result_cache).
+
 ## [3.4.9](https://github.com/Ousret/charset_normalizer/compare/3.4.8...3.4.9) (2026-07-07)
 
 ### Fixed

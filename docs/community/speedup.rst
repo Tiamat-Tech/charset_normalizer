@@ -4,37 +4,33 @@ Optional speedup extension
 Why?
 ----
 
-charset-normalizer will always remain pure Python, meaning that a environment without any build capabilities will
-run this program without any additional requirements.
+charset-normalizer will always retain a pure Python implementation, so environments
+without native build capabilities can use it without additional requirements.
 
-Nonetheless, starting from the version 3.0 we introduce and publish some platform specific wheels including a
-pre-built extension.
+Platform-specific wheels include pre-built Cython extensions for the mess and
+coherence detectors. The extensions preserve the public Python API while moving
+their hot loops to C.
 
-Most of the time is spent in the module `md.py` so we decided to "compile it" using Mypyc.
-
-(1) It does not require to have a separate code base
-(2) Our project code base is rather simple and lightweight
-(3) Mypyc is robust enough today
-(4) Four times faster!
+When no compatible native wheel is available, charset-normalizer automatically
+falls back to the pure Python implementation.
 
 How?
 ----
 
-If your platform and/or architecture is not served by this swift optimization you may compile it easily yourself.
-Following those instructions (provided you have the necessary toolchain installed):
+If your platform or architecture is not served by a native wheel, you can compile
+the extensions locally with a C compiler and Python development headers:
 
   ::
 
-    export CHARSET_NORMALIZER_USE_MYPYC=1
-    pip install mypy build wheel
-    pip install charset-normalizer --no-binary :all:
+    export CHARSET_NORMALIZER_USE_CYTHON=1
+    pip install charset-normalizer --no-binary charset-normalizer
 
 
 How not to?
 -----------
 
-You may install charset-normalizer without the speedups by directly using the universal wheel
-(most likely hosted on PyPI or any valid mirror you use) with ``--no-binary``.
+You may install charset-normalizer without the extensions by building the source
+distribution without setting ``CHARSET_NORMALIZER_USE_CYTHON``.
 
 E.g. when installing ``requests`` and you don't want to use the ``charset-normalizer`` speedups, you can do:
 

@@ -30,21 +30,10 @@ Mess Detector
 
 .. autofunction:: charset_normalizer.md.mess_ratio
 
-This library allows you to extend the capabilities of the mess detector by extending the
-class `MessDetectorPlugin`.
-
-.. autoclass:: charset_normalizer.md.MessDetectorPlugin
-    :inherited-members:
-
-
-.. autofunction:: charset_normalizer.md.is_suspiciously_successive_range
-
-
 Coherence Detector
 ------------------
 
 .. autofunction:: charset_normalizer.cd.coherence_ratio
-
 
 Utilities
 ---------
