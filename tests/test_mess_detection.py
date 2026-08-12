@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from charset_normalizer.md import is_suspiciously_successive_range, mess_ratio
+from charset_normalizer.md import _char_info, is_suspiciously_successive_range, mess_ratio
 
 
 @pytest.mark.parametrize(
@@ -46,6 +46,40 @@ def test_mess_detection(content, min_expected_ratio, max_expected_ratio):
     assert (
         min_expected_ratio <= calculated_mess_ratio <= max_expected_ratio
     ), "The mess detection ratio calculated for given content is not well adjusted!"
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "plain\x1bANSI escape",
+        "niezale¿n¹",
+        "niezaleæn¹",
+        "ﾅﾓﾉﾔ瘕齴黵",
+    ],
+)
+def test_decisive_mess_patterns(content):
+    assert mess_ratio(content, maximum_threshold=1.0) >= 1.0
+
+
+@pytest.mark.parametrize(
+    "content", ["¿Dónde?", "encyclopædia", "R²", "日本語ﾅﾓﾉﾔ"]
+)
+def test_legitimate_nearby_patterns(content):
+    assert mess_ratio(content, maximum_threshold=1.0) == 0.0
+
+
+@pytest.mark.parametrize(
+    "character, property_name",
+    [
+        ("ア", "is_katakana"),
+        ("ﾅ", "is_halfwidth_katakana"),
+        ("æ", "is_ligature"),
+        ("²", "is_superscript"),
+        ("¿", "is_sentence_open_punctuation"),
+    ],
+)
+def test_semantic_character_information(character, property_name):
+    assert getattr(_char_info(character), property_name) is True
 
 
 @pytest.mark.parametrize(

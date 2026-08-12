@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from charset_normalizer.api import from_bytes
-from charset_normalizer.models import CharsetMatches
+from charset_normalizer.models import CharsetMatch, CharsetMatches
 
 
 def test_empty():
@@ -29,6 +29,18 @@ def test_bool_matches():
     assert (
         bool(guesses_empty) is False
     ), "Bool behaviour of CharsetMatches altered, should be False"
+
+
+def test_matches_sort_lazily():
+    payload = b"plain ascii"
+    matches = CharsetMatches()
+    matches.append(CharsetMatch(payload, "ascii", 0.1, False, []))
+    matches.append(CharsetMatch(payload, "utf_8", 0.0, False, []))
+
+    assert matches.best() is not None
+    assert matches.best().encoding == "utf_8"
+    assert matches[0].encoding == "utf_8"
+    assert [match.encoding for match in matches] == ["utf_8", "ascii"]
 
 
 @pytest.mark.parametrize(
@@ -188,6 +200,39 @@ def test_mb_cutting_chk():
 
     assert len(guesses) == 1, "cp isolation is set and given seq should be clear CP949!"
     assert best_guess.encoding == "cp949"
+
+
+@pytest.mark.parametrize(
+    "encoding, content",
+    [
+        ("iso2022_jp", "日本語の文章を正しく検出します。" * 400),
+        ("iso2022_kr", "한국어 문장을 올바르게 감지합니다. " * 400),
+    ],
+)
+def test_stateful_multibyte_sampling(encoding, content):
+    best_guess = from_bytes(content.encode(encoding)).best()
+
+    assert best_guess is not None
+    assert best_guess.encoding == encoding
+    assert str(best_guess) == content
+
+
+def test_utf8_sig_overrides_misleading_declaration():
+    content = '<meta charset="cp1252"> café déjà vu'
+    best_guess = from_bytes(content.encode("utf_8_sig")).best()
+
+    assert best_guess is not None
+    assert best_guess.encoding == "utf_8"
+    assert str(best_guess) == content
+
+
+def test_ansi_escape_falls_back_to_unicode():
+    content = "\x1b[31mred text\x1b[0m"
+    best_guess = from_bytes(content.encode()).best()
+
+    assert best_guess is not None
+    assert best_guess.encoding == "utf_8"
+    assert str(best_guess) == content
 
 
 def test_alphabets_property():
