@@ -6,7 +6,7 @@ import unicodedata
 from bisect import bisect_right
 from codecs import IncrementalDecoder
 from encodings.aliases import aliases
-from re import findall
+from functools import lru_cache
 from typing import Generator
 
 from .constant import (
@@ -252,6 +252,7 @@ def any_specified_encoding(
     return None
 
 
+@lru_cache(maxsize=None)
 def is_multi_byte_encoding(name: str) -> bool:
     """
     Verify is a specific encoding is a multi byte one based on it IANA name
