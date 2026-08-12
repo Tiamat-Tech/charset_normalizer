@@ -677,10 +677,11 @@ def from_bytes(
             and "ascii" in tested
             and "utf_8" in tested
         ):
-            probable_result = early_stop_results.best()  # type: ignore[assignment]
+            probable_result = early_stop_results.best()
+            assert probable_result is not None
             logger.debug(
                 "Encoding detection: %s is most likely the one.",
-                probable_result.encoding,  # type: ignore[union-attr]
+                probable_result.encoding,
             )
             if explain:  # Defensive: ensure exit path clean handler
                 logger.removeHandler(explain_handler)
