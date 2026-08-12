@@ -2484,3 +2484,9 @@ _KNOWN_MB_CLASSES: frozenset[str] = frozenset(
         "_codecs_tw",
     }
 )
+
+_IANA_NAMES: dict[str, str] = {
+    **aliases,
+    **{iana_name: iana_name for iana_name in aliases.values()},
+}
+_MULTIBYTE_SEARCH_RADIUS: int = 32768

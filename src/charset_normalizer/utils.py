@@ -28,6 +28,8 @@ from .constant import (
     _ACCENTUATED,
     _KNOWN_MB_DECODERS,
     _KNOWN_MB_CLASSES,
+    _IANA_NAMES,
+    _MULTIBYTE_SEARCH_RADIUS,
 )
 
 
@@ -220,34 +222,19 @@ def any_specified_encoding(
 
     seq_len: int = len(sequence)
 
-    decoded_zone: str = sequence[: min(seq_len, search_zone)].decode(
-        "ascii", errors="ignore"
-    )
-
     # Cheap literal pre-filter.
-    lowered_zone: str = decoded_zone.lower()
-    if "coding" not in lowered_zone and "charset" not in lowered_zone:
+    search_bytes = sequence[: min(seq_len, search_zone)]
+    lowered_bytes = search_bytes.lower()
+    if b"coding" not in lowered_bytes and b"charset" not in lowered_bytes:
         return None
 
-    results: list[str] = findall(
-        RE_POSSIBLE_ENCODING_INDICATION,
-        decoded_zone,
-    )
+    decoded_zone: str = search_bytes.decode("ascii", errors="ignore")
 
-    if not results:
-        return None
-
-    for specified_encoding in results:
-        specified_encoding = specified_encoding.lower().replace("-", "_")
-
-        encoding_alias: str
-        encoding_iana: str
-
-        for encoding_alias, encoding_iana in aliases.items():
-            if encoding_alias == specified_encoding:
-                return encoding_iana
-            if encoding_iana == specified_encoding:
-                return encoding_iana
+    for match in RE_POSSIBLE_ENCODING_INDICATION.finditer(decoded_zone):
+        specified_encoding = match.group(1).lower().replace("-", "_")
+        encoding_iana = _IANA_NAMES.get(specified_encoding)
+        if encoding_iana is not None:
+            return encoding_iana
 
     return None
 
