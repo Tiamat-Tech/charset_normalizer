@@ -1,18 +1,7 @@
 from __future__ import annotations
 
-import sys
 from functools import lru_cache
 from logging import getLogger
-
-if sys.version_info >= (3, 8):
-    from typing import final
-else:
-    try:
-        from typing_extensions import final
-    except ImportError:
-
-        def final(cls):  # type: ignore[misc,no-untyped-def]
-            return cls
 
 
 from .constant import (
@@ -28,10 +17,14 @@ from .constant import (
     _COMPATIBLE_RANGE_FAMILIES,
     _COMPATIBLE_WITH_ANY_RANGE_FAMILIES,
     _HANGUL,
+    _HALFWIDTH_KATAKANA,
     _HIRAGANA,
     _KATAKANA,
     _LATIN,
+    _LIGATURE,
     _RANGE_FAMILIES,
+    _SENTENCE_OPEN_PUNCTUATION,
+    _SUPERSCRIPT,
     _THAI,
 )
 from .utils import (
@@ -48,7 +41,6 @@ from .utils import (
 _GLYPH_MASK: int = _CJK | _HANGUL | _KATAKANA | _HIRAGANA | _THAI
 
 
-@final
 class CharInfo:
     """Pre-computed character properties shared across all detectors."""
 
@@ -66,7 +58,12 @@ class CharInfo:
         "accentuated",
         "latin",
         "is_cjk",
+        "is_katakana",
+        "is_halfwidth_katakana",
         "is_arabic",
+        "is_ligature",
+        "is_superscript",
+        "is_sentence_open_punctuation",
         "is_glyph",
         "punct",
         "sym",
@@ -91,7 +88,12 @@ class CharInfo:
     accentuated: bool
     latin: bool
     is_cjk: bool
+    is_katakana: bool
+    is_halfwidth_katakana: bool
     is_arabic: bool
+    is_ligature: bool
+    is_superscript: bool
+    is_sentence_open_punctuation: bool
     is_glyph: bool
     punct: bool
     sym: bool
@@ -118,7 +120,12 @@ class CharInfo:
             self.common_cjk = False
             self.safe = character in COMMON_SAFE_ASCII_CHARACTERS
             self.is_cjk = False
+            self.is_katakana = False
+            self.is_halfwidth_katakana = False
             self.is_arabic = False
+            self.is_ligature = False
+            self.is_superscript = False
+            self.is_sentence_open_punctuation = False
             self.is_glyph = False
             # ASCII alpha: a-z (97-122) or A-Z (65-90)
             if 65 <= o <= 90:
@@ -199,18 +206,21 @@ class CharInfo:
             self.case_variable = self.lower != self.upper
 
             # Flag-based classification (single unicodedata.name() call, lru-cached)
-            flags: int
+            flags: int = _character_flags(character)
             if self.alpha:
-                flags = _character_flags(character)
                 self.emoticon = False
             else:
-                flags = 0
                 self.emoticon = is_emoticon(character)
             self.flags = flags
             self.accentuated = bool(flags & _ACCENTUATED)
             self.latin = bool(flags & _LATIN)
             self.is_cjk = bool(flags & _CJK)
+            self.is_katakana = bool(flags & _KATAKANA)
+            self.is_halfwidth_katakana = bool(flags & _HALFWIDTH_KATAKANA)
             self.is_arabic = bool(flags & _ARABIC)
+            self.is_ligature = bool(flags & _LIGATURE)
+            self.is_superscript = bool(flags & _SUPERSCRIPT)
+            self.is_sentence_open_punctuation = bool(flags & _SENTENCE_OPEN_PUNCTUATION)
             self.is_glyph = bool(flags & _GLYPH_MASK)
 
             if self.latin and self.accentuated:
@@ -277,7 +287,6 @@ class MessDetectorPlugin:
         raise NotImplementedError  # Defensive:
 
 
-@final
 class TooManySymbolOrPunctuationPlugin(MessDetectorPlugin):
     __slots__ = (
         "_punctuation_count",
@@ -322,7 +331,6 @@ class TooManySymbolOrPunctuationPlugin(MessDetectorPlugin):
         return ratio_of_punctuation if ratio_of_punctuation >= 0.3 else 0.0
 
 
-@final
 class TooManyAccentuatedPlugin(MessDetectorPlugin):
     __slots__ = ("_character_count", "_accentuated_count")
 
@@ -350,16 +358,19 @@ class TooManyAccentuatedPlugin(MessDetectorPlugin):
         return ratio_of_accentuation if ratio_of_accentuation >= 0.35 else 0.0
 
 
-@final
 class UnprintablePlugin(MessDetectorPlugin):
-    __slots__ = ("_unprintable_count", "_character_count")
+    __slots__ = ("_unprintable_count", "_character_count", "_has_escape")
 
     def __init__(self) -> None:
         self._unprintable_count: int = 0
         self._character_count: int = 0
+        self._has_escape: bool = False
 
     def feed_info(self, character: str, info: CharInfo) -> None:
         """Optimized feed using pre-computed character info."""
+        if character == "\x1b":
+            self._has_escape = True
+
         if (
             not info.printable
             and not info.space
@@ -371,16 +382,19 @@ class UnprintablePlugin(MessDetectorPlugin):
 
     def reset(self) -> None:  # Abstract
         self._unprintable_count = 0
+        self._has_escape = False
 
     @property
     def ratio(self) -> float:
         if self._character_count == 0:  # Defensive:
             return 0.0
 
+        if self._has_escape:
+            return 1.0
+
         return (self._unprintable_count * 8) / self._character_count
 
 
-@final
 class SuspiciousDuplicateAccentPlugin(MessDetectorPlugin):
     __slots__ = (
         "_successive_count",
@@ -425,7 +439,6 @@ class SuspiciousDuplicateAccentPlugin(MessDetectorPlugin):
         return (self._successive_count * 2) / self._character_count
 
 
-@final
 class SuspiciousRange(MessDetectorPlugin):
     __slots__ = (
         "_suspicious_successive_range_count",
@@ -483,7 +496,6 @@ class SuspiciousRange(MessDetectorPlugin):
         return ratio_of_suspicious_range_usage
 
 
-@final
 class SuperWeirdWordPlugin(MessDetectorPlugin):
     __slots__ = (
         "_word_count",
@@ -501,6 +513,10 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
         "_buffer_upper_count",
         "_buffer_first_lower",
         "_buffer_has_non_ascii",
+        "_buffer_last_char_ligature",
+        "_buffer_has_internal_ligature",
+        "_is_current_word_invalid",
+        "_invalid_word_count",
     )
 
     def __init__(self) -> None:
@@ -522,10 +538,17 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
         self._buffer_upper_count: int = 0
         self._buffer_first_lower: bool = False
         self._buffer_has_non_ascii: bool = False
+        self._buffer_last_char_ligature: bool = False
+        self._buffer_has_internal_ligature: bool = False
+        self._is_current_word_invalid: bool = False
+        self._invalid_word_count: int = 0
 
     def feed_info(self, character: str, info: CharInfo) -> None:
         """Optimized feed using pre-computed character info."""
         if info.alpha:
+            if self._buffer_last_char_ligature:
+                self._buffer_has_internal_ligature = True
+            self._buffer_last_char_ligature = info.is_ligature
             if self._buffer_length == 0:
                 self._buffer_first_lower = info.lower
             self._buffer_length += 1
@@ -547,6 +570,11 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
             return
         if not self._buffer_length:
             return
+        if info.is_sentence_open_punctuation or (
+            info.is_superscript and self._buffer_has_internal_ligature
+        ):
+            self._is_current_word_bad = True
+            self._is_current_word_invalid = True
         if info.space or info.punct or info.sep:
             self._word_count += 1
             buffer_length: int = self._buffer_length
@@ -590,6 +618,9 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
                 self._bad_word_count += 1
                 self._bad_character_count += buffer_length
                 self._is_current_word_bad = False
+            if self._is_current_word_invalid:
+                self._invalid_word_count += 1
+                self._is_current_word_invalid = False
 
             self._foreign_long_watch = False
             self._buffer_length = 0
@@ -600,6 +631,8 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
             self._buffer_upper_count = 0
             self._buffer_first_lower = False
             self._buffer_has_non_ascii = False
+            self._buffer_last_char_ligature = False
+            self._buffer_has_internal_ligature = False
         elif (
             character not in {"<", ">", "-", "=", "~", "|", "_"}
             and not info.digit
@@ -626,16 +659,22 @@ class SuperWeirdWordPlugin(MessDetectorPlugin):
         self._buffer_upper_count = 0
         self._buffer_first_lower = False
         self._buffer_has_non_ascii = False
+        self._buffer_last_char_ligature = False
+        self._buffer_has_internal_ligature = False
+        self._is_current_word_invalid = False
+        self._invalid_word_count = 0
 
     @property
     def ratio(self) -> float:
+        if self._invalid_word_count:
+            return 1.0
+
         if self._word_count <= 10 and self._foreign_long_count == 0:
             return 0.0
 
         return self._bad_character_count / self._character_count
 
 
-@final
 class CjkUncommonPlugin(MessDetectorPlugin):
     """
     Detect messy CJK text that probably means nothing.
@@ -660,17 +699,62 @@ class CjkUncommonPlugin(MessDetectorPlugin):
 
     @property
     def ratio(self) -> float:
-        if self._character_count < 8:
+        if self._character_count < 4:
             return 0.0
 
         uncommon_form_usage: float = self._uncommon_count / self._character_count
 
         # we can be pretty sure it's garbage when uncommon characters are widely
         # used. otherwise it could just be traditional chinese for example.
-        return uncommon_form_usage / 10 if uncommon_form_usage > 0.5 else 0.0
+        return uncommon_form_usage / 5 if uncommon_form_usage > 0.5 else 0.0
 
 
-@final
+class SuspiciousKatakanaPlugin(MessDetectorPlugin):
+    """Detect implausible halfwidth Katakana and uncommon CJK combinations."""
+
+    __slots__ = (
+        "_katakana_count",
+        "_halfwidth_katakana_count",
+        "_cjk_count",
+        "_uncommon_cjk_count",
+    )
+
+    def __init__(self) -> None:
+        self._katakana_count: int = 0
+        self._halfwidth_katakana_count: int = 0
+        self._cjk_count: int = 0
+        self._uncommon_cjk_count: int = 0
+
+    def feed_info(self, character: str, info: CharInfo) -> None:
+        """Optimized feed using pre-computed character info."""
+        if info.is_katakana:
+            self._katakana_count += 1
+            if info.is_halfwidth_katakana:
+                self._halfwidth_katakana_count += 1
+            return
+
+        self._cjk_count += 1
+        if not info.common_cjk:
+            self._uncommon_cjk_count += 1
+
+    def reset(self) -> None:  # Abstract
+        self._katakana_count = 0
+        self._halfwidth_katakana_count = 0
+        self._cjk_count = 0
+        self._uncommon_cjk_count = 0
+
+    @property
+    def ratio(self) -> float:
+        if (
+            self._halfwidth_katakana_count >= 4
+            and self._halfwidth_katakana_count == self._katakana_count
+            and 3 <= self._cjk_count == self._uncommon_cjk_count
+        ):
+            return 1.0
+
+        return 0.0
+
+
 class ArchaicUpperLowerPlugin(MessDetectorPlugin):
     __slots__ = (
         "_buf",
@@ -758,7 +842,6 @@ class ArchaicUpperLowerPlugin(MessDetectorPlugin):
         return self._successive_upper_lower_count_final / self._character_count
 
 
-@final
 class ArabicIsolatedFormPlugin(MessDetectorPlugin):
     __slots__ = ("_character_count", "_isolated_form_count")
 
@@ -838,8 +921,8 @@ def mess_ratio(
     else:
         step = 128
 
-    # str.isascii() is O(1) (the flag lives in the str header). Six of the
-    # nine detectors provably keep a 0.0 ratio on ASCII-only input and are
+    # str.isascii() is O(1) (the flag lives in the str header). Seven of the
+    # ten detectors provably keep a 0.0 ratio on ASCII-only input and are
     # therefore not fed at all.
     is_pure_ascii: bool = decoded_sequence.isascii()
 
@@ -863,10 +946,11 @@ def mess_ratio(
     d_sr: SuspiciousRange = SuspiciousRange()
     d_sw: SuperWeirdWordPlugin = SuperWeirdWordPlugin()
     d_cu: CjkUncommonPlugin = CjkUncommonPlugin()
+    d_sk: SuspiciousKatakanaPlugin = SuspiciousKatakanaPlugin()
     d_au: ArchaicUpperLowerPlugin = ArchaicUpperLowerPlugin()
     d_ai: ArabicIsolatedFormPlugin = ArabicIsolatedFormPlugin()
 
-    # Local references for feed_info methods called in the hot loop.
+    # Local references avoid repeated bound-method creation in the hot loop.
     d_sp_feed = d_sp.feed_info
     d_ta_feed = d_ta.feed_info
     d_up_feed = d_up.feed_info
@@ -874,6 +958,7 @@ def mess_ratio(
     d_sr_feed = d_sr.feed_info
     d_sw_feed = d_sw.feed_info
     d_cu_feed = d_cu.feed_info
+    d_sk_feed = d_sk.feed_info
     d_au_feed = d_au.feed_info
     d_ai_feed = d_ai.feed_info
 
@@ -881,8 +966,7 @@ def mess_ratio(
         for character in decoded_sequence[block_start : block_start + step]:
             # Character properties computed once per distinct codepoint
             # (shared across all plugins and all mess_ratio calls).
-            # ord() doubles as the ASCII table index and, unlike
-            # str.isascii(), lowers to a mypyc primitive.
+            # ord() doubles as the ASCII table index.
             codepoint: int = ord(character)
             if codepoint < 128:
                 info = ascii_info[codepoint]
@@ -894,7 +978,7 @@ def mess_ratio(
             d_sw_feed(character, info)
 
             if is_pure_ascii:
-                # The six remaining detectors provably stay at 0.0 (see above).
+                # The seven remaining detectors provably stay at 0.0 (see above).
                 if info.printable:
                     d_sp_feed(character, info)
                 continue
@@ -912,9 +996,12 @@ def mess_ratio(
                 # SuspiciousDuplicateAccent: isalpha() and is_latin()
                 if info.latin:
                     d_sda_feed(character, info)
-                # CjkUncommon: is_cjk()
+                # CjkUncommon and SuspiciousKatakana: is_cjk()
                 if info.is_cjk:
                     d_cu_feed(character, info)
+                    d_sk_feed(character, info)
+                elif info.is_katakana:
+                    d_sk_feed(character, info)
                 # ArabicIsolatedForm: is_arabic()
                 if info.is_arabic:
                     d_ai_feed(character, info)
@@ -927,6 +1014,7 @@ def mess_ratio(
             + d_sr.ratio
             + d_sw.ratio
             + d_cu.ratio
+            + d_sk.ratio
             + d_au.ratio
             + d_ai.ratio
         )
@@ -949,6 +1037,7 @@ def mess_ratio(
             + d_sr.ratio
             + d_sw.ratio
             + d_cu.ratio
+            + d_sk.ratio
             + d_au.ratio
             + d_ai.ratio
         )
@@ -967,7 +1056,7 @@ def mess_ratio(
             logger.log(TRACE, f"Starting with: {decoded_sequence[:16]}")
             logger.log(TRACE, f"Ending with: {decoded_sequence[-16::]}")
 
-        for dt in [d_sp, d_ta, d_up, d_sda, d_sr, d_sw, d_cu, d_au, d_ai]:
+        for dt in [d_sp, d_ta, d_up, d_sda, d_sr, d_sw, d_cu, d_sk, d_au, d_ai]:
             logger.log(TRACE, f"{dt.__class__}: {dt.ratio}")
 
     return round(mean_mess_ratio, 3)
