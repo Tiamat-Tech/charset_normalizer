@@ -33,6 +33,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
   "Programming Language :: Python :: Free Threading :: 4 - Resilient",
+  "Environment :: WebAssembly",
+  "Environment :: WebAssembly :: Emscripten",
   "Topic :: Text Processing :: Linguistic",
   "Topic :: Utilities",
   "Typing :: Typed",
