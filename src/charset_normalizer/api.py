@@ -214,7 +214,7 @@ def from_bytes(
     sig_encoding, sig_payload = identify_sig_or_bom(sequences)
 
     if sig_encoding is not None:
-        prioritized_encodings.append(sig_encoding)
+        prioritized_encodings.insert(0, sig_encoding)
         logger.log(
             TRACE,
             "Detected a SIG or BOM mark on first %i byte(s). Priority +1 given for %s.",
