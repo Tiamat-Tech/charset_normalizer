@@ -1,7 +1,7 @@
 [build-system]
 requires = ["setuptools>=68,<83.1"]
 build-backend = "backend"
-backend-path = ["_mypyc_hook"]
+backend-path = ["_build_hook"]
 
 [project]
 name = "charset-normalizer"
@@ -63,8 +63,12 @@ dev = [
 ]
 
 [tool.setuptools]
+include-package-data = false
 package-dir = {"" = "src"}
 packages = ["charset_normalizer", "charset_normalizer.cli", ]
+
+[tool.setuptools.package-data]
+charset_normalizer = ["py.typed"]
 
 [tool.setuptools.dynamic]
 version = {attr = "charset_normalizer.__version__"}

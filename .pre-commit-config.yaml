@@ -22,6 +22,11 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
+  - repo: https://github.com/MarcoGorelli/cython-lint
+    rev: cd1e9c4e6b51ca206dc6282d8b15fe3e2299de3c  # frozen: v0.21.0
+    hooks:
+      - id: cython-lint
+        args: [ --max-line-length=88, --ban-relative-imports ]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: d2823d321df3af8f878f7ee3414dc94d037145b9  # frozen: v2.1.0
     hooks:
