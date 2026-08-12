@@ -161,6 +161,7 @@ jobs:
             CHARSET_NORMALIZER_USE_CYTHON='1'
             CHARSET_NORMALIZER_CYTHON_ABI3='0'
           CIBW_TEST_REQUIRES: pytest
+          CIBW_TEST_SKIP: ${{ matrix.platform == 'pyodide' && '*-pyodide_*' || '' }}
           CIBW_TEST_SOURCES: >-
             tests
             pyproject.toml
