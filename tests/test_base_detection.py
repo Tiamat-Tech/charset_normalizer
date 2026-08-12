@@ -208,6 +208,7 @@ def test_mb_cutting_chk():
         ("iso2022_jp", "日本語の文章を正しく検出します。" * 400),
         ("iso2022_kr", "한국어 문장을 올바르게 감지합니다. " * 400),
     ],
+    ids=["iso2022-jp", "iso2022-kr"],
 )
 def test_stateful_multibyte_sampling(encoding, content):
     best_guess = from_bytes(content.encode(encoding)).best()
