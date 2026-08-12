@@ -104,6 +104,7 @@ def coverage(session: nox.Session) -> None:
 
     # Install deps and the package itself.
     session.install("-r", "dev-requirements.txt", "--require-hashes", silent=False)
+    session.install("chardet==7.5.1")
 
     session.install(".", silent=False)
 
