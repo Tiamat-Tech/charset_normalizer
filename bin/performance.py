@@ -58,6 +58,11 @@ def performance_compare(arguments):
     file_list = sorted(glob("./char-dataset/**/*.*"))
     total_files = len(file_list)
 
+    # Warm deferred imports without priming either detector with corpus data.
+    dummy_big5_content = b"\xa4\xa4\xa4\xe5\xb4\xfa\xb8\xd5" * 1024
+    chardet_detect(dummy_big5_content)
+    detect(dummy_big5_content)
+
     for idx, tbt_path in enumerate(file_list):
         with open(tbt_path, "rb") as fp:
             content = fp.read() * args.size_coeff

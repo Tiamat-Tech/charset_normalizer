@@ -124,6 +124,7 @@ jobs:
             platform: pyodide
             build: cp312-pyodide_wasm32
             archs: wasm32
+            enable: pyodide-eol
           - name: android
             runner: ubuntu-latest
             platform: android
@@ -154,6 +155,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.platform }}
           CIBW_BUILD: ${{ matrix.build }}
           CIBW_ARCHS: ${{ matrix.archs }}
+          CIBW_ENABLE: ${{ matrix.enable }}
           CIBW_BUILD_FRONTEND: build
           CIBW_ENVIRONMENT: >-
             CHARSET_NORMALIZER_USE_CYTHON='1'
