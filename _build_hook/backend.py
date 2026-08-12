@@ -41,15 +41,16 @@ def build_wheel(
     """Build a wheel, requiring Cython when native extensions are requested."""
     if USE_CYTHON:
         try:
-            import Cython  # noqa: F401
+            import Cython  # type: ignore[import-not-found]  # noqa: F401
         except ImportError as exception:
-            raise RuntimeError("Cython is required for the optimized build") from exception
-    return _orig.build_wheel(
-        wheel_directory, config_settings, metadata_directory
-    )
+            raise RuntimeError(
+                "Cython is required for the optimized build"
+            ) from exception
+    return _orig.build_wheel(wheel_directory, config_settings, metadata_directory)  # type: ignore[no-any-return]
 
 
 if hasattr(_orig, "get_requires_for_build_editable"):
+
     def get_requires_for_build_editable(
         config_settings: dict[str, Any] | None = None,
     ) -> list[str]:
