@@ -21,9 +21,13 @@ from .constant import (
     _HANGUL,
     _KATAKANA,
     _HIRAGANA,
+    _HALFWIDTH_KATAKANA,
     _THAI,
     _ARABIC,
     _ARABIC_ISOLATED_FORM,
+    _LIGATURE,
+    _SUPERSCRIPT,
+    _SENTENCE_OPEN_PUNCTUATION,
     _ACCENT_KEYWORDS,
     _ACCENTUATED,
     _KNOWN_MB_DECODERS,
@@ -50,6 +54,8 @@ def _character_flags(character: str) -> int:
         flags |= _HANGUL
     if "KATAKANA" in desc:
         flags |= _KATAKANA
+        if "HALFWIDTH" in desc:
+            flags |= _HALFWIDTH_KATAKANA
     if "HIRAGANA" in desc:
         flags |= _HIRAGANA
     if "THAI" in desc:
@@ -58,6 +64,12 @@ def _character_flags(character: str) -> int:
         flags |= _ARABIC
         if "ISOLATED FORM" in desc:
             flags |= _ARABIC_ISOLATED_FORM
+    if "LIGATURE" in desc or desc.endswith("LETTER AE"):
+        flags |= _LIGATURE
+    if "SUPERSCRIPT" in desc:
+        flags |= _SUPERSCRIPT
+    if desc in {"INVERTED QUESTION MARK", "INVERTED EXCLAMATION MARK"}:
+        flags |= _SENTENCE_OPEN_PUNCTUATION
 
     for kw in _ACCENT_KEYWORDS:
         if kw in desc:

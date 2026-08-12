@@ -2429,6 +2429,10 @@ _HIRAGANA: int = 1 << 5
 _THAI: int = 1 << 6
 _ARABIC: int = 1 << 7
 _ARABIC_ISOLATED_FORM: int = 1 << 8
+_HALFWIDTH_KATAKANA: int = 1 << 9
+_LIGATURE: int = 1 << 10
+_SUPERSCRIPT: int = 1 << 11
+_SENTENCE_OPEN_PUNCTUATION: int = 1 << 12
 
 _ACCENT_KEYWORDS: tuple[str, ...] = (
     "WITH GRAVE",
