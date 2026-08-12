@@ -410,10 +410,25 @@ def cut_sequence_chunks(
             # not the cleanest way to perform that fix but clever enough for now.
             if is_multi_byte_decoder and i > 0:
                 chunk_partial_size_chk: int = min(chunk_size, 16)
+                chunk_prefix = chunk[:chunk_partial_size_chk]
+                found_nearby = False
+
+                if decoded_payload:
+                    decoded_length = len(decoded_payload)
+                    expected_offset = i * decoded_length // len(sequences)
+                    search_start = max(0, expected_offset - _MULTIBYTE_SEARCH_RADIUS)
+                    search_end = min(
+                        decoded_length, expected_offset + _MULTIBYTE_SEARCH_RADIUS
+                    )
+                    found_nearby = (
+                        decoded_payload.find(chunk_prefix, search_start, search_end)
+                        >= 0
+                    )
 
                 if (
                     decoded_payload
-                    and chunk[:chunk_partial_size_chk] not in decoded_payload
+                    and not found_nearby
+                    and chunk_prefix not in decoded_payload
                 ):
                     for j in range(i, i - 4, -1):
                         cut_sequence = sequences[j:chunk_end]
