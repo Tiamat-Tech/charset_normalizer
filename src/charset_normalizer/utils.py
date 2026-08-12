@@ -372,7 +372,17 @@ def cut_sequence_chunks(
     decoded_payload: str | None = None,
     deferred_decoding: bool = False,
 ) -> Generator[str, None, None]:
-    if decoded_payload and not is_multi_byte_decoder:
+    # iso2022 codec is stateful, generic mb cuter isn't going to cut it!
+    if decoded_payload and encoding_iana.startswith("iso2022_"):
+        decoded_length = len(decoded_payload)
+        sequence_length = len(sequences)
+        for i in offsets:
+            decoded_offset = i * decoded_length // sequence_length
+            chunk = decoded_payload[decoded_offset : decoded_offset + chunk_size]
+            if not chunk:
+                break
+            yield chunk
+    elif decoded_payload and not is_multi_byte_decoder:
         for i in offsets:
             chunk = decoded_payload[i : i + chunk_size]
             if not chunk:
