@@ -870,6 +870,7 @@ class ArabicIsolatedFormPlugin(MessDetectorPlugin):
         return isolated_form_usage
 
 
+@lru_cache(maxsize=None)
 def is_suspiciously_successive_range(
     unicode_range_a: str | None, unicode_range_b: str | None
 ) -> bool:
