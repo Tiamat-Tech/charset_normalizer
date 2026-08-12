@@ -140,16 +140,14 @@ def from_bytes(
     if is_too_small_sequence:
         logger.log(
             TRACE,
-            "Trying to detect encoding from a tiny portion of ({}) byte(s).".format(
-                length
-            ),
+            "Trying to detect encoding from a tiny portion of (%i) byte(s).",
+            length,
         )
     elif is_too_large_sequence:
         logger.log(
             TRACE,
-            "Using lazy str decoding because the payload is quite large, ({}) byte(s).".format(
-                length
-            ),
+            "Using lazy str decoding because the payload is quite large, (%i) byte(s).",
+            length,
         )
 
     prioritized_encodings: list[str] = []
@@ -713,9 +711,9 @@ def from_bytes(
         if target_languages:
             logger.log(
                 TRACE,
-                "{} should target any language(s) of {}".format(
-                    encoding_iana, str(target_languages)
-                ),
+                "%s should target any language(s) of %s",
+                encoding_iana,
+                target_languages,
             )
 
         cd_ratios = []
@@ -746,9 +744,9 @@ def from_bytes(
         if cd_ratios_merged:
             logger.log(
                 TRACE,
-                "We detected language {} using {}".format(
-                    cd_ratios_merged, encoding_iana
-                ),
+                "We detected language %s using %s",
+                cd_ratios_merged,
+                encoding_iana,
             )
 
         current_match = CharsetMatch(
