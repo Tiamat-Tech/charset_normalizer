@@ -51,25 +51,8 @@ The objective is the same, provide you with the best answer (charset) we can giv
 The method actually differs.
 
 We do not "train" anything to build a probe for a specific encoding. In addition to finding any languages (intelligent
-design) by some rudimentary statistics (character frequency ordering) we built a mess detector to assist the language
-detection.
+design) by some rudimentary statistics (character frequency ordering) we built a noise detector to assist the language
+rudimentary detection.
 
 Any code page supported by your cPython is supported by charset-normalizer! It is that simple, no need to update the
 library. It is as generic as we could do.
-
-I can't build standalone executable
------------------------------------
-
-If you are using ``pyinstaller``, ``py2exe`` or alike, you may be encountering this or close to:
-
-    ModuleNotFoundError: No module named 'charset_normalizer.md__mypyc'
-
-Why?
-
-- Your package manager picked up a optimized (for speed purposes) wheel that match your architecture and operating system.
-- Finally, the module ``charset_normalizer.md__mypyc`` is imported via binaries and can't be seen using your tool.
-
-How to remedy?
-
-If your bundler program support it, set up a hook that implicitly import the hidden module.
-Otherwise, follow the guide on how to install the vanilla version of this package. (Section: *Optional speedup extension*)
