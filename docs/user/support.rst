@@ -179,5 +179,3 @@ Incomplete Sequence / Stream
 It is not (yet) officially supported. If you feed an incomplete byte sequence (eg. truncated multi-byte sequence) the detector will
 most likely fail to return a proper result.
 If you are purposely feeding part of your payload for performance concerns, you may stop doing it as this package is fairly optimized.
-
-We are working on a dedicated way to handle streams.

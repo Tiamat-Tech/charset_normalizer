@@ -2,6 +2,16 @@
 All notable changes to charset-normalizer will be documented in this file. This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [3.5.1](https://github.com/Ousret/charset_normalizer/compare/3.5.0...3.5.1) (2026-08-15)
+
+### Changed
+- Raised upper bound of setuptools to v84 (#794)
+- Cache performance access optimization for our CharInfo struct (prebuilt only).
+
+### Fixed
+- No longer decoding large content when the noise detector output give a high entropy.
+  Only impacted large content input >1M bytes.
+
 ## [3.5.0](https://github.com/Ousret/charset_normalizer/compare/3.4.9...3.5.0) (2026-08-12)
 
 ### Added
