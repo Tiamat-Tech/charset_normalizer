@@ -37,12 +37,7 @@ Is it backward-compatible with Chardet?
 ---------------------------------------
 
 If you use the legacy `detect` function,
-Then this change is mostly backward-compatible, exception of a thing:
-
-- This new library support way more code pages (x3) than its counterpart Chardet.
-- Based on the 30-ich charsets that Chardet support, expect roughly 80% BC results
-
-We do not guarantee this BC exact percentage through time. May vary but not by much.
+Then this change is mostly backward-compatible.
 
 Isn't it the same as Chardet?
 -----------------------------
@@ -56,3 +51,7 @@ rudimentary detection.
 
 Any code page supported by your cPython is supported by charset-normalizer! It is that simple, no need to update the
 library. It is as generic as we could do.
+
+Chardet v7, through the magic AI rewrite, decided to leverage some aspect that distance itself from the "pure" statistical
+algorithm it was before. They now implement similar guidance as we did since inception like (i.e. what they identify as)
+"Escape Sequences"+"Binary Detection"+"Markup Charset".
